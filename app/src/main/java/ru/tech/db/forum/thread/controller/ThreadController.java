@@ -45,8 +45,37 @@ public class ThreadController {
     List<Thread> threadList = service.getThreads(slug, zdt, limit, desc);
 
     if (threadList.isEmpty()) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("there is no forum");
+      return ResponseEntity.status(HttpStatus.NOT_FOUND).body("there is no forum");
     }
     return ResponseEntity.status(HttpStatus.OK).body(threadList);
+  }
+
+  @GetMapping("/thread/{slug_or_id}/details")
+  public ResponseEntity getThread(@PathVariable(name = "slug_or_id") String slugOrId) {
+    Thread thread;
+
+    try {
+      long id = Long.parseLong(slugOrId);
+      thread = service.getThread(id);
+    } catch (NumberFormatException ex) {
+      thread = service.getThread(slugOrId);
+    }
+
+    return ResponseEntity.status(HttpStatus.OK).body(thread);
+  }
+
+  @PostMapping("/thread/{slug_or_id}/details")
+  public ResponseEntity updateThread(
+      @RequestBody Thread thread, @PathVariable(name = "slug_or_id") String slugOrId) {
+    try {
+      long id = Long.parseLong(slugOrId);
+      thread.setId(id);
+      thread = service.updateThreadById(thread);
+    } catch (NumberFormatException ex) {
+      thread.setSlug(slugOrId);
+      thread = service.updateThreadBySlug(thread);
+    }
+
+    return ResponseEntity.status(HttpStatus.OK).body(thread);
   }
 }

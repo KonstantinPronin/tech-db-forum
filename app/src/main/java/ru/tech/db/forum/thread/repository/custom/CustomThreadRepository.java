@@ -9,6 +9,8 @@ import java.util.List;
 public interface CustomThreadRepository {
     @Transactional
     Thread create(Thread thread);
+    @Transactional
+    Thread update(Thread thread);
     List<Thread> findThreadsBySlugOrderByCreatedAsc(String slug);
     List<Thread> findThreadsBySlugOrderByCreatedDesc(String slug);
     List<Thread> findThreadsBySlugWithLimitOrderByCreatedAsc(String slug, int limit);

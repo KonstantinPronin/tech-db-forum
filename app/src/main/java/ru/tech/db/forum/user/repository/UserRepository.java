@@ -13,21 +13,6 @@ import java.util.List;
 
 @Repository
 public interface UserRepository extends CrudRepository<User, String>, CustomUserRepository {
-  List<User> findUsersByNicknameOrEmail(String nickname, String email);
-
   User findUserByNickname(String nickName);
-
-  @Modifying(clearAutomatically = true)
-  @Transactional
-  @Query(
-      "update user set fullname=:#{#user?.getFullname()}, about=:#{#user?.getAbout()}, email=:#{#user?.getEmail()} "
-          + "where nickname=:#{#user?.getNickname()}")
-  int update(@Param("user") User user);
-
-//  @Procedure(name = "getForumUsers")
-//  List<User> getForumUsers(
-//      @Param("slug") String slug,
-//      @Param("since") String since,
-//      @Param("lim") Integer limit,
-//      @Param("d") Boolean desc);
+  List<User> findUsersByNicknameOrEmail(String nickname, String email);
 }

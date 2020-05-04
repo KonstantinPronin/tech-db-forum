@@ -37,13 +37,22 @@ public class UserService {
   }
 
   public User updateUser(User user) {
-    int rowsEffected = repository.update(user);
-
-    if (rowsEffected == 0) {
+    User stored = repository.findUserByNickname(user.getNickname());
+    if (stored == null) {
       throw new NotFoundException(String.format("Can't find user %s", user.getNickname()));
     }
 
-    return user;
+    if (user.getFullname() != null) {
+      stored.setFullname(user.getFullname());
+    }
+    if (user.getAbout() != null) {
+      stored.setAbout(user.getAbout());
+    }
+    if (user.getEmail() != null) {
+      stored.setEmail(user.getEmail());
+    }
+
+    return repository.update(stored);
   }
 
   public List<User> getForumUsers(String slug, String since, Integer limit, Boolean desc) {

@@ -46,11 +46,11 @@ public class ThreadService {
     return threadList;
   }
 
-  public List<Thread> getThreads(
-          String slug, ZonedDateTime since, Integer limit, Boolean desc) {
+  public List<Thread> getThreads(String slug, ZonedDateTime since, Integer limit, Boolean desc) {
     if (since != null && limit != null) {
       if (Boolean.TRUE.equals(desc)) {
-        return repository.findThreadsBySlugSinceCreatedWithLimitOrderByCreatedDesc(slug, since, limit);
+        return repository.findThreadsBySlugSinceCreatedWithLimitOrderByCreatedDesc(
+            slug, since, limit);
       }
       return repository.findThreadsBySlugSinceCreatedWithLimitOrderByCreatedAsc(slug, since, limit);
     }
@@ -76,5 +76,54 @@ public class ThreadService {
     }
 
     return repository.findThreadsBySlugOrderByCreatedAsc(slug);
+  }
+
+  public Thread getThread(String slug) {
+    Thread thread = repository.findThreadBySlug(slug);
+
+    if (thread == null) {
+      throw new NotFoundException(String.format("Can't find thread %s", slug));
+    }
+
+    return thread;
+  }
+
+  public Thread getThread(long id) {
+    Thread thread = repository.findThreadById(id);
+
+    if (thread == null) {
+      throw new NotFoundException(String.format("Can't find thread %s", id));
+    }
+
+    return thread;
+  }
+
+  public Thread updateThreadById(Thread thread) {
+    Thread stored = repository.findThreadById(thread.getId());
+    if (stored == null) {
+      throw new NotFoundException("Can't find thread");
+    }
+
+    return update(stored, thread);
+  }
+
+  public Thread updateThreadBySlug(Thread thread) {
+    Thread stored = repository.findThreadBySlug(thread.getSlug());
+    if (stored == null) {
+      throw new NotFoundException("Can't find thread");
+    }
+
+    return update(stored, thread);
+  }
+
+  private Thread update(Thread old, Thread current) {
+    if (current.getTitle() != null) {
+      old.setTitle(current.getTitle());
+    }
+    if (current.getMessage() != null) {
+      old.setMessage(current.getMessage());
+    }
+
+    return repository.update(old);
   }
 }

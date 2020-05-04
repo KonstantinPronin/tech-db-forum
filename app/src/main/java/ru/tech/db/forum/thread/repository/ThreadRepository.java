@@ -8,4 +8,5 @@ import ru.tech.db.forum.thread.repository.custom.CustomThreadRepository;
 @Repository
 public interface ThreadRepository extends CrudRepository<Thread, Long>, CustomThreadRepository {
     Thread findThreadBySlug(String slug);
+    Thread findThreadById(long id);
 }

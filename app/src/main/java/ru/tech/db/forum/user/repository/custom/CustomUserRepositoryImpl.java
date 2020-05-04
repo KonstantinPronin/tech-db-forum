@@ -17,6 +17,12 @@ public class CustomUserRepositoryImpl implements CustomUserRepository {
   }
 
   @Override
+  public User update(User user) {
+    em.merge(user);
+    return user;
+  }
+
+  @Override
   public List<User> getForumUsers(String slug, String since, Integer limit, Boolean desc) {
     StoredProcedureQuery q = em.createNamedStoredProcedureQuery("getForumUsers");
     q.setParameter("forumId", slug);

@@ -17,6 +17,12 @@ public class CustomThreadRepositoryImpl implements CustomThreadRepository {
   }
 
   @Override
+  public Thread update(Thread thread) {
+    em.merge(thread);
+    return thread;
+  }
+
+  @Override
   public List<Thread> findThreadsBySlugOrderByCreatedAsc(String slug) {
     return em.createQuery(
             "select t from thread t where t.forum = ?1 order by t.created asc",

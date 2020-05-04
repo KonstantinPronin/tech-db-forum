@@ -8,5 +8,7 @@ import java.util.List;
 public interface CustomUserRepository {
   @Transactional
   User create(User user);
+  @Transactional
+  User update(User user);
   List<User> getForumUsers(String slug, String since, Integer lim, Boolean d);
 }
