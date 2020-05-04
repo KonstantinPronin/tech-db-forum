@@ -2,6 +2,7 @@ package ru.tech.db.forum.user.service;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import ru.tech.db.forum.exception.model.NotFoundException;
 import ru.tech.db.forum.user.model.User;
 import ru.tech.db.forum.user.repository.UserRepository;
 
@@ -26,13 +27,20 @@ public class UserService {
   }
 
   public User getUserByName(String nickname) {
-    return repository.findUserByNickname(nickname);
+    User user = repository.findUserByNickname(nickname);
+
+    if (user == null) {
+      throw new NotFoundException(String.format("Can't find user %s", nickname));
+    }
+
+    return user;
   }
 
   public User updateUser(User user) {
     int rowsEffected = repository.update(user);
+
     if (rowsEffected == 0) {
-      return null;
+      throw new NotFoundException(String.format("Can't find user %s", user.getNickname()));
     }
 
     return user;

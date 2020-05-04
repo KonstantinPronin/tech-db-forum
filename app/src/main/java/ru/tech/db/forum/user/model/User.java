@@ -2,7 +2,7 @@ package ru.tech.db.forum.user.model;
 
 import javax.persistence.*;
 
-@Entity(name = "users")
+@Entity(name = "user")
 @Table(name = "users")
 public class User {
   @Id

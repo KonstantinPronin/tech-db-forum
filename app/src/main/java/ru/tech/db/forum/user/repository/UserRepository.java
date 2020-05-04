@@ -20,7 +20,7 @@ public interface UserRepository extends CrudRepository<User, String>, CustomUser
   @Modifying(clearAutomatically = true)
   @Transactional
   @Query(
-      "update users set fullname=:#{#user?.getFullname()}, about=:#{#user?.getAbout()}, email=:#{#user?.getEmail()} "
+      "update user set fullname=:#{#user?.getFullname()}, about=:#{#user?.getAbout()}, email=:#{#user?.getEmail()} "
           + "where nickname=:#{#user?.getNickname()}")
   int update(@Param("user") User user);
 }

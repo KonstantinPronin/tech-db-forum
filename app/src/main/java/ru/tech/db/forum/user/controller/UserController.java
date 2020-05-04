@@ -3,7 +3,6 @@ package ru.tech.db.forum.user.controller;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import ru.tech.db.forum.exception.model.NotFoundException;
 import ru.tech.db.forum.user.model.User;
 import ru.tech.db.forum.user.service.UserService;
 
@@ -35,11 +34,6 @@ public class UserController {
   @GetMapping("/{nickname}/profile")
   public ResponseEntity getUser(@PathVariable("nickname") String nickname) {
     User user = service.getUserByName(nickname);
-
-    if (user == null) {
-      throw new NotFoundException(String.format("Can't find user %s", nickname));
-    }
-
     return ResponseEntity.status(HttpStatus.OK).body(user);
   }
 
@@ -48,10 +42,6 @@ public class UserController {
       @RequestBody User user, @PathVariable("nickname") String nickname) {
     user.setNickname(nickname);
     user = service.updateUser(user);
-
-    if (user == null) {
-      throw new NotFoundException(String.format("Can't find user %s", nickname));
-    }
 
     return ResponseEntity.status(HttpStatus.OK).body(user);
   }
