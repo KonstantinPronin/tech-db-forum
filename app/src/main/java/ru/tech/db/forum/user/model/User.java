@@ -4,6 +4,16 @@ import javax.persistence.*;
 
 @Entity(name = "user")
 @Table(name = "users")
+@NamedStoredProcedureQuery(
+    name = "getForumUsers",
+    procedureName = "forum.getForumUsers",
+    resultClasses = User.class,
+    parameters = {
+      @StoredProcedureParameter(mode = ParameterMode.IN, name = "forumId", type = String.class),
+      @StoredProcedureParameter(mode = ParameterMode.IN, name = "lim", type = Integer.class),
+      @StoredProcedureParameter(mode = ParameterMode.IN, name = "since", type = String.class),
+      @StoredProcedureParameter(mode = ParameterMode.IN, name = "d", type = Boolean.class),
+    })
 public class User {
   @Id
   @Column(name = "nickname")

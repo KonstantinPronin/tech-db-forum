@@ -23,4 +23,11 @@ public interface UserRepository extends CrudRepository<User, String>, CustomUser
       "update user set fullname=:#{#user?.getFullname()}, about=:#{#user?.getAbout()}, email=:#{#user?.getEmail()} "
           + "where nickname=:#{#user?.getNickname()}")
   int update(@Param("user") User user);
+
+//  @Procedure(name = "getForumUsers")
+//  List<User> getForumUsers(
+//      @Param("slug") String slug,
+//      @Param("since") String since,
+//      @Param("lim") Integer limit,
+//      @Param("d") Boolean desc);
 }

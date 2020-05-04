@@ -10,7 +10,7 @@ import java.util.List;
 
 
 @RestController
-@RequestMapping("/api/user")
+@RequestMapping("/api")
 public class UserController {
   private UserService service;
 
@@ -18,7 +18,7 @@ public class UserController {
     this.service = service;
   }
 
-  @PostMapping("/{nickname}/create")
+  @PostMapping("/user/{nickname}/create")
   public ResponseEntity createUser(
       @RequestBody User user, @PathVariable("nickname") String nickname) {
     user.setNickname(nickname);
@@ -31,18 +31,32 @@ public class UserController {
     return ResponseEntity.status(HttpStatus.CONFLICT).body(existingUsers);
   }
 
-  @GetMapping("/{nickname}/profile")
+  @GetMapping("/user/{nickname}/profile")
   public ResponseEntity getUser(@PathVariable("nickname") String nickname) {
     User user = service.getUserByName(nickname);
     return ResponseEntity.status(HttpStatus.OK).body(user);
   }
 
-  @PostMapping("/{nickname}/profile")
+  @PostMapping("/user/{nickname}/profile")
   public ResponseEntity updateUser(
       @RequestBody User user, @PathVariable("nickname") String nickname) {
     user.setNickname(nickname);
     user = service.updateUser(user);
 
     return ResponseEntity.status(HttpStatus.OK).body(user);
+  }
+
+  @GetMapping("/forum/{slug}/users")
+  public ResponseEntity getForumUsers(
+          @PathVariable(name = "slug") String slug,
+          @RequestParam(required = false) Integer limit,
+          @RequestParam(required = false) String since,
+          @RequestParam(required = false) Boolean desc) {
+    List<User> userList = service.getForumUsers(slug, since, limit, desc);
+
+    if (userList.isEmpty()) {
+      return ResponseEntity.status(HttpStatus.NOT_FOUND).body("there is no forum");
+    }
+    return ResponseEntity.status(HttpStatus.OK).body(userList);
   }
 }

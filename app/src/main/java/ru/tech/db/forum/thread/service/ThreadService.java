@@ -7,7 +7,6 @@ import ru.tech.db.forum.exception.model.NotFoundException;
 import ru.tech.db.forum.thread.model.Thread;
 import ru.tech.db.forum.thread.repository.ThreadRepository;
 
-import java.sql.Timestamp;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -48,7 +47,34 @@ public class ThreadService {
   }
 
   public List<Thread> getThreads(
-          String slug, ZonedDateTime since, int limit, boolean desc) {
-    return repository.findThreadsBySlugSinceCreatedWithLimitOrderByCreatedAsc(slug, since, limit);
+          String slug, ZonedDateTime since, Integer limit, Boolean desc) {
+    if (since != null && limit != null) {
+      if (Boolean.TRUE.equals(desc)) {
+        return repository.findThreadsBySlugSinceCreatedWithLimitOrderByCreatedDesc(slug, since, limit);
+      }
+      return repository.findThreadsBySlugSinceCreatedWithLimitOrderByCreatedAsc(slug, since, limit);
+    }
+
+    if (since != null) {
+      if (Boolean.TRUE.equals(desc)) {
+        return repository.findThreadsBySlugSinceCreatedOrderByCreatedDesc(slug, since);
+      }
+
+      return repository.findThreadsBySlugSinceCreatedOrderByCreatedAsc(slug, since);
+    }
+
+    if (limit != null) {
+      if (Boolean.TRUE.equals(desc)) {
+        return repository.findThreadsBySlugWithLimitOrderByCreatedDesc(slug, limit);
+      }
+
+      return repository.findThreadsBySlugWithLimitOrderByCreatedAsc(slug, limit);
+    }
+
+    if (Boolean.TRUE.equals(desc)) {
+      return repository.findThreadsBySlugOrderByCreatedDesc(slug);
+    }
+
+    return repository.findThreadsBySlugOrderByCreatedAsc(slug);
   }
 }

@@ -60,3 +60,85 @@ create table forum.posts
     parent   integer     default 0,
     isEdited boolean     default false
 );
+
+create or replace function forum.getForumUsers(forumId character varying, lim integer, since character varying,
+                                               d boolean)
+    returns table
+            (
+                like forum.users
+            )
+    LANGUAGE 'plpgsql'
+as
+$body$
+begin
+    if (lim IS NOT NULL and since IS NOT NULL and d = true) then
+        return query select u.nickname, u.fullname, u.email, u.about
+                     from forum.threads t
+                              full join forum.posts p on (t.author = p.author)
+                              join forum.users u on (u.nickname = t.author)
+                     where (t.forum = forumId or p.forum = forumId)
+                       and u.nickname > since
+                     order by u.nickname desc
+                     limit lim;
+    elsif (lim IS NOT NULL and d = true) then
+        return query select u.nickname, u.fullname, u.email, u.about
+                     from forum.threads t
+                              full join forum.posts p on (t.author = p.author)
+                              join forum.users u on (u.nickname = t.author)
+                     where (t.forum = forumId or p.forum = forumId)
+                     order by u.nickname desc
+                     limit lim;
+    elsif (since IS NOT NULL and d = true) then
+        return query select u.nickname, u.fullname, u.email, u.about
+                     from forum.threads t
+                              full join forum.posts p on (t.author = p.author)
+                              join forum.users u on (u.nickname = t.author)
+                     where (t.forum = forumId or p.forum = forumId)
+                       and u.nickname > since
+                     order by u.nickname desc;
+    elsif (d = true) then
+        return query select u.nickname, u.fullname, u.email, u.about
+                     from forum.threads t
+                              full join forum.posts p on (t.author = p.author)
+                              join forum.users u on (u.nickname = t.author)
+                     where (t.forum = forumId or p.forum = forumId)
+                     order by u.nickname desc;
+    elsif (lim IS NOT NULL and since IS NOT NULL) then
+        return query select u.nickname, u.fullname, u.email, u.about
+                     from forum.threads t
+                              full join forum.posts p on (t.author = p.author)
+                              join forum.users u on (u.nickname = t.author)
+                     where (t.forum = forumId or p.forum = forumId)
+                       and u.nickname > since
+                     order by u.nickname
+                     limit lim;
+    elsif (lim IS NOT NULL) then
+        return query select u.nickname, u.fullname, u.email, u.about
+                     from forum.threads t
+                              full join forum.posts p on (t.author = p.author)
+                              join forum.users u on (u.nickname = t.author)
+                     where (t.forum = forumId or p.forum = forumId)
+                     order by u.nickname
+                     limit lim;
+    elsif (since IS NOT NULL) then
+        return query select u.nickname, u.fullname, u.email, u.about
+                     from forum.threads t
+                              full join forum.posts p on (t.author = p.author)
+                              join forum.users u on (u.nickname = t.author)
+                     where (t.forum = forumId or p.forum = forumId)
+                       and u.nickname > since
+                     order by u.nickname;
+    else
+        return query select u.nickname, u.fullname, u.email, u.about
+                     from forum.threads t
+                              full join forum.posts p on (t.author = p.author)
+                              join forum.users u on (u.nickname = t.author)
+                     where (t.forum = forumId or p.forum = forumId)
+                     order by u.nickname;
+    end if;
+end
+$body$;
+
+
+
+

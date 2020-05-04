@@ -45,4 +45,8 @@ public class UserService {
 
     return user;
   }
+
+  public List<User> getForumUsers(String slug, String since, Integer limit, Boolean desc) {
+     return repository.getForumUsers(slug, since, limit, desc);
+  }
 }

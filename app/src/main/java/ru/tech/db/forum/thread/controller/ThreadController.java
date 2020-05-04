@@ -6,8 +6,6 @@ import org.springframework.web.bind.annotation.*;
 import ru.tech.db.forum.thread.model.Thread;
 import ru.tech.db.forum.thread.service.ThreadService;
 
-import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.List;
 
@@ -36,11 +34,19 @@ public class ThreadController {
   @GetMapping("/forum/{slug}/threads")
   public ResponseEntity getThreads(
       @PathVariable(name = "slug") String slug,
-      @RequestParam(required = false) int limit,
+      @RequestParam(required = false) Integer limit,
       @RequestParam(required = false) String since,
-      @RequestParam(required = false) boolean desc) {
-    ZonedDateTime zdt = ZonedDateTime.parse(since);
+      @RequestParam(required = false) Boolean desc) {
+    ZonedDateTime zdt = null;
+    if (since != null) {
+      zdt = ZonedDateTime.parse(since);
+    }
+
     List<Thread> threadList = service.getThreads(slug, zdt, limit, desc);
+
+    if (threadList.isEmpty()) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("there is no forum");
+    }
     return ResponseEntity.status(HttpStatus.OK).body(threadList);
   }
 }
