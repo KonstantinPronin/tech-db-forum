@@ -69,6 +69,76 @@ create table forum.votes
     unique (nickname, thread)
 );
 
+create table forum.status
+(
+    forum  bigint default 0,
+    thread bigint default 0,
+    post   bigint default 0,
+    "user" bigint default 0
+);
+
+insert into forum.status values (0, 0, 0, 0);
+-----------------------------------------------------------------------------
+create or replace function update_forum_status() returns trigger
+    LANGUAGE plpgsql
+as
+$body$
+BEGIN
+    UPDATE forum.status
+    SET forum = forum + 1;
+    RETURN NEW;
+END;
+$body$;
+
+create trigger update_forum_status_trigger
+    after insert on forum.forums for each row
+    execute procedure update_forum_status();
+-----------------------------------------------------------------------------
+create or replace function update_thread_status() returns trigger
+    LANGUAGE plpgsql
+as
+$body$
+BEGIN
+    UPDATE forum.status
+    SET thread = thread + 1;
+    RETURN NEW;
+END;
+$body$;
+
+create trigger update_thread_status_trigger
+    after insert on forum.threads for each row
+execute procedure update_thread_status();
+-----------------------------------------------------------------------------
+create or replace function update_post_status() returns trigger
+    LANGUAGE plpgsql
+as
+$body$
+BEGIN
+    UPDATE forum.status
+    SET post = post + 1;
+    RETURN NEW;
+END;
+$body$;
+
+create trigger update_post_status_trigger
+    after insert on forum.posts for each row
+execute procedure update_post_status();
+-----------------------------------------------------------------------------
+create or replace function update_user_status() returns trigger
+    LANGUAGE plpgsql
+as
+$body$
+BEGIN
+    UPDATE forum.status
+    SET "user" = "user" + 1;
+    RETURN NEW;
+END;
+$body$;
+
+create trigger update_user_status_trigger
+    after insert on forum.users for each row
+execute procedure update_user_status();
+-----------------------------------------------------------------------------
 create or replace function update_votes() returns trigger
     LANGUAGE plpgsql
 as
@@ -92,7 +162,7 @@ CREATE TRIGGER update_vote_trigger
     ON forum.votes
     FOR EACH ROW
 EXECUTE PROCEDURE update_votes();
-
+-----------------------------------------------------------------------------
 create or replace function forum.getForumUsers(forumId character varying, lim integer, since character varying,
                                                d boolean)
     returns table
@@ -170,6 +240,7 @@ begin
     end if;
 end
 $body$;
+-----------------------------------------------------------------------------
 
 
 
