@@ -61,6 +61,38 @@ create table forum.posts
     isEdited boolean     default false
 );
 
+create table forum.votes
+(
+    nickname citext not null references forum.users (nickname),
+    thread   bigint not null references forum.threads (id),
+    voice    smallint check ( voice in (-1, 1)),
+    unique (nickname, thread)
+);
+
+create or replace function update_votes() returns trigger
+    LANGUAGE plpgsql
+as
+$body$
+BEGIN
+    IF (TG_OP = 'INSERT') THEN
+        UPDATE forum.threads
+        SET votes = votes + NEW.voice
+        WHERE id = NEW.thread;
+    ELSE
+        UPDATE forum.threads
+        SET votes = votes - OLD.voice + NEW.voice
+        WHERE id = NEW.thread;
+    END IF;
+    RETURN NEW;
+END;
+$body$;
+
+CREATE TRIGGER update_vote_trigger
+    AFTER UPDATE OR INSERT
+    ON forum.votes
+    FOR EACH ROW
+EXECUTE PROCEDURE update_votes();
+
 create or replace function forum.getForumUsers(forumId character varying, lim integer, since character varying,
                                                d boolean)
     returns table

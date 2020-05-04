@@ -6,6 +6,8 @@ import org.springframework.stereotype.Service;
 import ru.tech.db.forum.exception.model.NotFoundException;
 import ru.tech.db.forum.thread.model.Thread;
 import ru.tech.db.forum.thread.repository.ThreadRepository;
+import ru.tech.db.forum.vote.model.Vote;
+import ru.tech.db.forum.vote.repository.VoteRepository;
 
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -17,9 +19,11 @@ import static org.postgresql.util.PSQLState.UNIQUE_VIOLATION;
 @Service
 public class ThreadService {
   private ThreadRepository repository;
+  private VoteRepository voteRepository;
 
-  public ThreadService(ThreadRepository repository) {
+  public ThreadService(ThreadRepository repository, VoteRepository voteRepository) {
     this.repository = repository;
+    this.voteRepository = voteRepository;
   }
 
   public List<Thread> createThread(Thread thread) {
@@ -125,5 +129,13 @@ public class ThreadService {
     }
 
     return repository.update(old);
+  }
+
+  public void vote(Vote vote) {
+    try {
+      voteRepository.save(vote);
+    } catch (DataIntegrityViolationException ex) {
+      throw new NotFoundException(String.format("Can't find user %s", vote.getNickname()));
+    }
   }
 }

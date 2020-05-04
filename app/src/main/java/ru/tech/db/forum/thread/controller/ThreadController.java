@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.tech.db.forum.thread.model.Thread;
 import ru.tech.db.forum.thread.service.ThreadService;
+import ru.tech.db.forum.vote.model.Vote;
 
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -76,6 +77,23 @@ public class ThreadController {
       thread = service.updateThreadBySlug(thread);
     }
 
+    return ResponseEntity.status(HttpStatus.OK).body(thread);
+  }
+
+  @PostMapping("/thread/{slug_or_id}/vote")
+  public ResponseEntity vote(
+      @RequestBody Vote vote, @PathVariable(name = "slug_or_id") String slugOrId) {
+    Thread thread;
+
+    try {
+      long id = Long.parseLong(slugOrId);
+      thread = service.getThread(id);
+    } catch (NumberFormatException ex) {
+      thread = service.getThread(slugOrId);
+    }
+
+    vote.setThread(thread.getId());
+    //TODO thread vote is old, maybe should be updated
     return ResponseEntity.status(HttpStatus.OK).body(thread);
   }
 }
