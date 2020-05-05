@@ -3,6 +3,7 @@ package ru.tech.db.forum.post.controller;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import ru.tech.db.forum.post.model.FullPost;
 import ru.tech.db.forum.post.model.Post;
 import ru.tech.db.forum.post.service.PostService;
 import ru.tech.db.forum.thread.model.Thread;
@@ -39,21 +40,29 @@ public class PostController {
   }
 
   @GetMapping("/post/{id}/details")
-  public ResponseEntity getPost(@PathVariable(name = "id") Long id) {
-    return null;
+  public ResponseEntity getPost(
+      @PathVariable(name = "id") Long id, @RequestParam(required = false) List<String> related) {
+      FullPost post = service.getFullPost(id, related);
+
+      return ResponseEntity.status(HttpStatus.OK).body(post);
   }
 
   @PostMapping("/post/{id}/details")
   public ResponseEntity updatePost(@RequestBody Post post, @PathVariable(name = "id") Long id) {
-    return null;
+    post.setId(id);
+
+    post = service.updatePost(post);
+
+    return ResponseEntity.status(HttpStatus.OK).body(post);
   }
 
   @GetMapping("/thread/{slug_or_id}/posts")
-  public ResponseEntity getThreadPosts(@PathVariable(name = "slug_or_id") String slugOrId,
-                                       @RequestParam(required = false) Integer limit,
-                                       @RequestParam(required = false) Long since,
-                                       @RequestParam(required = false) String sort,
-                                       @RequestParam(required = false) Boolean desc) {
+  public ResponseEntity getThreadPosts(
+      @PathVariable(name = "slug_or_id") String slugOrId,
+      @RequestParam(required = false) Integer limit,
+      @RequestParam(required = false) Long since,
+      @RequestParam(required = false) String sort,
+      @RequestParam(required = false) Boolean desc) {
     Thread thread;
 
     try {
