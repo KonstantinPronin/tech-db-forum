@@ -2,14 +2,14 @@
 
 -- DROP DATABASE tech_db;
 
-CREATE DATABASE tech_db
-    WITH
-    OWNER = postgres
-    ENCODING = 'UTF8'
-    LC_COLLATE = 'C'
-    LC_CTYPE = 'C'
-    TABLESPACE = pg_default
-    CONNECTION LIMIT = -1;
+-- CREATE DATABASE tech_db
+--     WITH
+--     OWNER = postgres
+--     ENCODING = 'UTF8'
+--     LC_COLLATE = 'C'
+--     LC_CTYPE = 'C'
+--     TABLESPACE = pg_default
+--     CONNECTION LIMIT = -1;
 
 -- SCHEMA: forum
 
@@ -24,7 +24,7 @@ create unlogged table forum.users
 (
     nickname citext primary key,
     fullname text        not null,
-    email    text unique not null,
+    email    citext unique not null,
     about    text
 );
 -----------------------------------------------------------------------------

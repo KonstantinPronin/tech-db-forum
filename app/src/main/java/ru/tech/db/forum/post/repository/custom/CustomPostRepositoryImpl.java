@@ -7,6 +7,7 @@ import ru.tech.db.forum.thread.model.Thread;
 import ru.tech.db.forum.user.model.User;
 
 import javax.persistence.EntityManager;
+import javax.persistence.NoResultException;
 import javax.persistence.PersistenceContext;
 import javax.persistence.StoredProcedureQuery;
 import java.util.List;
@@ -29,9 +30,20 @@ public class CustomPostRepositoryImpl implements CustomPostRepository {
   @Override
   public FullPost getFullPost(Long id) {
     FullPost post = new FullPost();
-    Object[] result = (Object[]) em.createQuery("select u, f, p, t from post p inner join user u on p.author = u.nickname " +
-            "inner join forum f on p.forum = f.slug inner join thread t on p.thread = t.id " +
-            "where p.id = ?1").setParameter(1, id).getSingleResult();
+    Object[] result;
+    try {
+      result =
+          (Object[])
+              em.createQuery(
+                      "select u, f, p, t from post p inner join user u on p.author = u.nickname "
+                          + "inner join forum f on p.forum = f.slug inner join thread t on p.thread = t.id "
+                          + "where p.id = ?1")
+                  .setParameter(1, id)
+                  .getSingleResult();
+    } catch (NoResultException ex) {
+      return null;
+    }
+
     if (result.length < 4) {
       return null;
     }
@@ -64,7 +76,8 @@ public class CustomPostRepositoryImpl implements CustomPostRepository {
   }
 
   @Override
-  public List<Post> getThreadPostParentTree(Long threadId, Integer limit, Long since, Boolean desc) {
+  public List<Post> getThreadPostParentTree(
+      Long threadId, Integer limit, Long since, Boolean desc) {
     StoredProcedureQuery q = em.createNamedStoredProcedureQuery("getThreadPostParentTree");
     q.setParameter("threadId", threadId);
     q.setParameter("lim", limit);
