@@ -19,16 +19,16 @@ CREATE SCHEMA forum
     AUTHORIZATION postgres;
 
 CREATE EXTENSION IF NOT EXISTS CITEXT;
-
-create table forum.users
+-----------------------------------------------------------------------------
+create unlogged table forum.users
 (
     nickname citext primary key,
     fullname text        not null,
     email    text unique not null,
     about    text
 );
-
-create table forum.forums
+-----------------------------------------------------------------------------
+create unlogged table forum.forums
 (
     slug    citext primary key,
     title   text   not null,
@@ -36,8 +36,8 @@ create table forum.forums
     threads integer default 0,
     posts   bigint  default 0
 );
-
-create table forum.threads
+-----------------------------------------------------------------------------
+create unlogged table forum.threads
 (
     id      bigserial primary key,
     slug    citext unique,
@@ -48,8 +48,8 @@ create table forum.threads
     message text   not null,
     votes   integer     default 0
 );
-
-create table forum.posts
+-----------------------------------------------------------------------------
+create unlogged table forum.posts
 (
     id       bigserial primary key,
     author   citext not null references forum.users (nickname),
@@ -57,19 +57,21 @@ create table forum.posts
     message  text   not null,
     forum    citext not null references forum.forums (slug),
     thread   bigint not null references forum.threads (id),
-    parent   integer     default 0,
-    isEdited boolean     default false
+    isEdited boolean     default false,
+    parent   bigint      default 0,
+    path     integer[]   default array []::integer[],
+    children integer     default 0
 );
-
-create table forum.votes
+-----------------------------------------------------------------------------
+create unlogged table forum.votes
 (
     nickname citext not null references forum.users (nickname),
     thread   bigint not null references forum.threads (id),
     voice    smallint check ( voice in (-1, 1)),
     unique (nickname, thread)
 );
-
-create table forum.status
+-----------------------------------------------------------------------------
+create unlogged table forum.status
 (
     forum  bigint default 0,
     thread bigint default 0,
@@ -77,7 +79,8 @@ create table forum.status
     "user" bigint default 0
 );
 
-insert into forum.status values (0, 0, 0, 0);
+insert into forum.status
+values (0, 0, 0, 0);
 -----------------------------------------------------------------------------
 create or replace function update_forum_status() returns trigger
     LANGUAGE plpgsql
@@ -91,8 +94,10 @@ END;
 $body$;
 
 create trigger update_forum_status_trigger
-    after insert on forum.forums for each row
-    execute procedure update_forum_status();
+    after insert
+    on forum.forums
+    for each row
+execute procedure update_forum_status();
 -----------------------------------------------------------------------------
 create or replace function update_thread_status() returns trigger
     LANGUAGE plpgsql
@@ -106,7 +111,9 @@ END;
 $body$;
 
 create trigger update_thread_status_trigger
-    after insert on forum.threads for each row
+    after insert
+    on forum.threads
+    for each row
 execute procedure update_thread_status();
 -----------------------------------------------------------------------------
 create or replace function update_post_status() returns trigger
@@ -121,7 +128,9 @@ END;
 $body$;
 
 create trigger update_post_status_trigger
-    after insert on forum.posts for each row
+    after insert
+    on forum.posts
+    for each row
 execute procedure update_post_status();
 -----------------------------------------------------------------------------
 create or replace function update_user_status() returns trigger
@@ -136,7 +145,9 @@ END;
 $body$;
 
 create trigger update_user_status_trigger
-    after insert on forum.users for each row
+    after insert
+    on forum.users
+    for each row
 execute procedure update_user_status();
 -----------------------------------------------------------------------------
 create or replace function update_votes() returns trigger
@@ -163,7 +174,33 @@ CREATE TRIGGER update_vote_trigger
     FOR EACH ROW
 EXECUTE PROCEDURE update_votes();
 -----------------------------------------------------------------------------
-create or replace function forum.getForumUsers(forumId character varying, lim integer, since character varying,
+create or replace function update_children() returns trigger
+    LANGUAGE plpgsql
+as
+$body$
+begin
+    if new.parent != 0 then
+        update forum.posts
+        set children = children + 1
+        where id = new.parent;
+    else
+        update forum.posts
+        set path = array [new.id]
+        where id = new.id;
+    end if;
+    return new;
+end;
+$body$;
+
+create trigger update_children_trigger
+    after insert
+    on forum.posts
+    for each row
+execute procedure update_children();
+-----------------------------------------------------------------------------
+create or replace function forum.getForumUsers(forumId character varying,
+                                               lim integer,
+                                               since character varying,
                                                d boolean)
     returns table
             (
@@ -241,7 +278,446 @@ begin
 end
 $body$;
 -----------------------------------------------------------------------------
-
-
+create or replace function forum.getThreadPostFlat(threadId bigint,
+                                                   lim integer,
+                                                   since bigint,
+                                                   d boolean)
+    returns table
+            (
+                like forum.posts
+            )
+    LANGUAGE 'plpgsql'
+as
+$body$
+begin
+    if (lim IS NOT NULL and since IS NOT NULL and d = true) then
+        return query select p.id,
+                            p.author,
+                            p.created,
+                            p.message,
+                            p.forum,
+                            p.thread,
+                            p.isEdited,
+                            p.parent,
+                            p.path,
+                            p.children
+                     from forum.posts p
+                     where p.thread = threadId
+                       and p.id > since
+                     order by created desc
+                     limit lim;
+    elsif (lim IS NOT NULL and d = true) then
+        return query select p.id,
+                            p.author,
+                            p.created,
+                            p.message,
+                            p.forum,
+                            p.thread,
+                            p.isEdited,
+                            p.parent,
+                            p.path,
+                            p.children
+                     from forum.posts p
+                     where p.thread = threadId
+                     order by created desc
+                     limit lim;
+    elsif (since IS NOT NULL and d = true) then
+        return query select p.id,
+                            p.author,
+                            p.created,
+                            p.message,
+                            p.forum,
+                            p.thread,
+                            p.isEdited,
+                            p.parent,
+                            p.path,
+                            p.children
+                     from forum.posts p
+                     where p.thread = threadId
+                       and p.id > since
+                     order by created desc;
+    elsif (d = true) then
+        return query select p.id,
+                            p.author,
+                            p.created,
+                            p.message,
+                            p.forum,
+                            p.thread,
+                            p.isEdited,
+                            p.parent,
+                            p.path,
+                            p.children
+                     from forum.posts p
+                     where p.thread = threadId
+                     order by created desc;
+    elsif (lim IS NOT NULL and since IS NOT NULL) then
+        return query select p.id,
+                            p.author,
+                            p.created,
+                            p.message,
+                            p.forum,
+                            p.thread,
+                            p.isEdited,
+                            p.parent,
+                            p.path,
+                            p.children
+                     from forum.posts p
+                     where p.thread = threadId
+                       and p.id > since
+                     order by created
+                     limit lim;
+    elsif (lim IS NOT NULL) then
+        return query select p.id,
+                            p.author,
+                            p.created,
+                            p.message,
+                            p.forum,
+                            p.thread,
+                            p.isEdited,
+                            p.parent,
+                            p.path,
+                            p.children
+                     from forum.posts p
+                     where p.thread = threadId
+                     order by created
+                     limit lim;
+    elsif (since IS NOT NULL) then
+        return query select p.id,
+                            p.author,
+                            p.created,
+                            p.message,
+                            p.forum,
+                            p.thread,
+                            p.isEdited,
+                            p.parent,
+                            p.path,
+                            p.children
+                     from forum.posts p
+                     where p.thread = threadId
+                       and p.id > since
+                     order by created;
+    else
+        return query select p.id,
+                            p.author,
+                            p.created,
+                            p.message,
+                            p.forum,
+                            p.thread,
+                            p.isEdited,
+                            p.parent,
+                            p.path,
+                            p.children
+                     from forum.posts p
+                     where p.thread = threadId
+                     order by created;
+    end if;
+end;
+$body$;
+-----------------------------------------------------------------------------
+create or replace function forum.getThreadPostTree(threadId bigint,
+                                                   lim integer,
+                                                   since bigint,
+                                                   d boolean)
+    returns table
+            (
+                like forum.posts
+            )
+    LANGUAGE 'plpgsql'
+as
+$body$
+declare
+    sincePath forum.posts.path%TYPE;
+begin
+    if (since is not null) then
+        select path into sincePath from forum.posts where id = since;
+    end if;
+    if (lim IS NOT NULL and sincePath IS NOT NULL and d = true) then
+        return query select p.id,
+                            p.author,
+                            p.created,
+                            p.message,
+                            p.forum,
+                            p.thread,
+                            p.isEdited,
+                            p.parent,
+                            p.path,
+                            p.children
+                     from forum.posts p
+                     where p.thread = threadId
+                       and path > sincePath
+                     order by path desc
+                     limit lim;
+    elsif (lim IS NOT NULL and d = true) then
+        return query select p.id,
+                            p.author,
+                            p.created,
+                            p.message,
+                            p.forum,
+                            p.thread,
+                            p.isEdited,
+                            p.parent,
+                            p.path,
+                            p.children
+                     from forum.posts p
+                     where p.thread = threadId
+                     order by path desc
+                     limit lim;
+    elsif (sincePath IS NOT NULL and d = true) then
+        return query select p.id,
+                            p.author,
+                            p.created,
+                            p.message,
+                            p.forum,
+                            p.thread,
+                            p.isEdited,
+                            p.parent,
+                            p.path,
+                            p.children
+                     from forum.posts p
+                     where p.thread = threadId
+                       and path > sincePath
+                     order by path desc;
+    elsif (d = true) then
+        return query select p.id,
+                            p.author,
+                            p.created,
+                            p.message,
+                            p.forum,
+                            p.thread,
+                            p.isEdited,
+                            p.parent,
+                            p.path,
+                            p.children
+                     from forum.posts p
+                     where p.thread = threadId
+                     order by path desc;
+    elsif (lim IS NOT NULL and sincePath IS NOT NULL) then
+        return query select p.id,
+                            p.author,
+                            p.created,
+                            p.message,
+                            p.forum,
+                            p.thread,
+                            p.isEdited,
+                            p.parent,
+                            p.path,
+                            p.children
+                     from forum.posts p
+                     where p.thread = threadId
+                       and path > sincePath
+                     order by path
+                     limit lim;
+    elsif (lim IS NOT NULL) then
+        return query select p.id,
+                            p.author,
+                            p.created,
+                            p.message,
+                            p.forum,
+                            p.thread,
+                            p.isEdited,
+                            p.parent,
+                            p.path,
+                            p.children
+                     from forum.posts p
+                     where p.thread = threadId
+                     order by path
+                     limit lim;
+    elsif (sincePath IS NOT NULL) then
+        return query select p.id,
+                            p.author,
+                            p.created,
+                            p.message,
+                            p.forum,
+                            p.thread,
+                            p.isEdited,
+                            p.parent,
+                            p.path,
+                            p.children
+                     from forum.posts p
+                     where p.thread = threadId
+                       and path > sincePath
+                     order by path;
+    else
+        return query select p.id,
+                            p.author,
+                            p.created,
+                            p.message,
+                            p.forum,
+                            p.thread,
+                            p.isEdited,
+                            p.parent,
+                            p.path,
+                            p.children
+                     from forum.posts p
+                     where p.thread = threadId
+                     order by path;
+    end if;
+end;
+$body$;
+-----------------------------------------------------------------------------
+create or replace function forum.getThreadPostParentTree(threadId bigint,
+                                                   lim integer,
+                                                   since bigint,
+                                                   d boolean)
+    returns table
+            (
+                like forum.posts
+            )
+    LANGUAGE 'plpgsql'
+as
+$body$
+begin
+    if (lim IS NOT NULL and since IS NOT NULL and d = true) then
+        return query select p.id,
+                            p.author,
+                            p.created,
+                            p.message,
+                            p.forum,
+                            p.thread,
+                            p.isEdited,
+                            p.parent,
+                            p.path,
+                            p.children
+                     from forum.posts p
+                     where p.path[1] in (
+                         select id from forum.posts
+                            where thread = threadId and parent = 0
+                                and id > since
+                            order by id desc
+                            limit lim
+                         )
+                     order by path[1] desc, path;
+    elsif (lim IS NOT NULL and d = true) then
+        return query select p.id,
+                            p.author,
+                            p.created,
+                            p.message,
+                            p.forum,
+                            p.thread,
+                            p.isEdited,
+                            p.parent,
+                            p.path,
+                            p.children
+                     from forum.posts p
+                     where p.path[1] in (
+                         select id from forum.posts
+                         where thread = threadId and parent = 0
+                         order by id desc
+                         limit lim
+                     )
+                     order by path[1] desc, path;
+    elsif (since IS NOT NULL and d = true) then
+        return query select p.id,
+                            p.author,
+                            p.created,
+                            p.message,
+                            p.forum,
+                            p.thread,
+                            p.isEdited,
+                            p.parent,
+                            p.path,
+                            p.children
+                     from forum.posts p
+                     where p.path[1] in (
+                         select id from forum.posts
+                         where thread = threadId and parent = 0
+                           and id > since
+                     )
+                     order by path[1] desc, path;
+    elsif (d = true) then
+        return query select p.id,
+                            p.author,
+                            p.created,
+                            p.message,
+                            p.forum,
+                            p.thread,
+                            p.isEdited,
+                            p.parent,
+                            p.path,
+                            p.children
+                     from forum.posts p
+                     where p.path[1] in (
+                         select id from forum.posts
+                         where thread = threadId and parent = 0
+                     )
+                     order by path[1] desc, path;
+    elsif (lim IS NOT NULL and since IS NOT NULL) then
+        return query select p.id,
+                            p.author,
+                            p.created,
+                            p.message,
+                            p.forum,
+                            p.thread,
+                            p.isEdited,
+                            p.parent,
+                            p.path,
+                            p.children
+                     from forum.posts p
+                     where p.path[1] in (
+                         select id from forum.posts
+                         where thread = threadId and parent = 0
+                           and id > since
+                         order by id
+                         limit lim
+                     )
+                     order by path[1], path;
+    elsif (lim IS NOT NULL) then
+        return query select p.id,
+                            p.author,
+                            p.created,
+                            p.message,
+                            p.forum,
+                            p.thread,
+                            p.isEdited,
+                            p.parent,
+                            p.path,
+                            p.children
+                     from forum.posts p
+                     where p.path[1] in (
+                         select id from forum.posts
+                         where thread = threadId and parent = 0
+                         order by id
+                         limit lim
+                     )
+                     order by path[1], path;
+    elsif (since IS NOT NULL) then
+        return query select p.id,
+                            p.author,
+                            p.created,
+                            p.message,
+                            p.forum,
+                            p.thread,
+                            p.isEdited,
+                            p.parent,
+                            p.path,
+                            p.children
+                     from forum.posts p
+                     where p.path[1] in (
+                         select id from forum.posts
+                         where thread = threadId and parent = 0
+                           and id > since
+                     )
+                     order by path[1], path;
+    else
+        return query select p.id,
+                            p.author,
+                            p.created,
+                            p.message,
+                            p.forum,
+                            p.thread,
+                            p.isEdited,
+                            p.parent,
+                            p.path,
+                            p.children
+                     from forum.posts p
+                     where p.path[1] in (
+                         select id from forum.posts
+                         where thread = threadId and parent = 0
+                     )
+                     order by path[1], path;
+    end if;
+end;
+$body$;
+-----------------------------------------------------------------------------
 
 
