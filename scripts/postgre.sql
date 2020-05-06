@@ -82,7 +82,7 @@ create unlogged table forum.status
 insert into forum.status
 values (0, 0, 0, 0);
 -----------------------------------------------------------------------------
-create or replace function update_forum_status() returns trigger
+create or replace function forum.update_forum_status() returns trigger
     LANGUAGE plpgsql
 as
 $body$
@@ -97,9 +97,9 @@ create trigger update_forum_status_trigger
     after insert
     on forum.forums
     for each row
-execute procedure update_forum_status();
+execute procedure forum.update_forum_status();
 -----------------------------------------------------------------------------
-create or replace function update_thread_status() returns trigger
+create or replace function forum.update_thread_status() returns trigger
     LANGUAGE plpgsql
 as
 $body$
@@ -117,9 +117,9 @@ create trigger update_thread_status_trigger
     after insert
     on forum.threads
     for each row
-execute procedure update_thread_status();
+execute procedure forum.update_thread_status();
 -----------------------------------------------------------------------------
-create or replace function update_post_status() returns trigger
+create or replace function forum.update_post_status() returns trigger
     LANGUAGE plpgsql
 as
 $body$
@@ -137,9 +137,9 @@ create trigger update_post_status_trigger
     after insert
     on forum.posts
     for each row
-execute procedure update_post_status();
+execute procedure forum.update_post_status();
 -----------------------------------------------------------------------------
-create or replace function update_user_status() returns trigger
+create or replace function forum.update_user_status() returns trigger
     LANGUAGE plpgsql
 as
 $body$
@@ -154,9 +154,9 @@ create trigger update_user_status_trigger
     after insert
     on forum.users
     for each row
-execute procedure update_user_status();
+execute procedure forum.update_user_status();
 -----------------------------------------------------------------------------
-create or replace function update_votes() returns trigger
+create or replace function forum.update_votes() returns trigger
     LANGUAGE plpgsql
 as
 $body$
@@ -178,9 +178,9 @@ CREATE TRIGGER update_vote_trigger
     AFTER UPDATE OR INSERT
     ON forum.votes
     FOR EACH ROW
-EXECUTE PROCEDURE update_votes();
+EXECUTE PROCEDURE forum.update_votes();
 -----------------------------------------------------------------------------
-create or replace function update_children() returns trigger
+create or replace function forum.update_children() returns trigger
     LANGUAGE plpgsql
 as
 $body$
@@ -202,7 +202,7 @@ create trigger update_children_trigger
     after insert
     on forum.posts
     for each row
-execute procedure update_children();
+execute procedure forum.update_children();
 -----------------------------------------------------------------------------
 create or replace function forum.getForumUsers(forumId character varying,
                                                lim integer,
