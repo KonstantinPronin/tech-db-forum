@@ -1,5 +1,6 @@
 package ru.tech.db.forum.post.service;
 
+import org.postgresql.util.PSQLException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import ru.tech.db.forum.exception.model.NotFoundException;
@@ -11,6 +12,8 @@ import ru.tech.db.forum.thread.model.Thread;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.List;
+
+import static org.postgresql.util.PSQLState.FOREIGN_KEY_VIOLATION;
 
 @Service
 public class PostService {
@@ -28,11 +31,12 @@ public class PostService {
       post.setCreated(zdt);
 
       if (post.getParent() == 0) {
-        repository.create(post);
+        createPost(post);
         continue;
       }
 
-      Post parent = repository.findPostById(post.getParent());
+      repository.clearCache();
+      Post parent = repository.findPostByIdAndThread(post.getParent(), post.getThread());
       if (parent == null) {
         throw new DataIntegrityViolationException("Wrong parent post id");
       }
@@ -41,10 +45,24 @@ public class PostService {
       path[parent.getPath().length] = parent.getChildren() + 1;
       post.setPath(path);
 
-      repository.create(post);
+      createPost(post);
     }
 
     return postList;
+  }
+
+  private void createPost(Post post) {
+    try {
+      repository.create(post);
+    } catch (DataIntegrityViolationException ex) {
+      PSQLException sqlEx = ((PSQLException) ex.getCause().getCause());
+      String state = sqlEx.getSQLState();
+      if (FOREIGN_KEY_VIOLATION.getState().equals(state)) {
+        throw new NotFoundException(String.format("Can't find user %s", post.getAuthor()));
+      }
+
+      throw ex;
+    }
   }
 
   public Post getPost(Long id) {
@@ -72,7 +90,7 @@ public class PostService {
 
     for (String param : related) {
       switch (param) {
-        case "author":
+        case "user":
           filteredPost.setAuthor(post.getAuthor());
           break;
         case "forum":
@@ -94,7 +112,7 @@ public class PostService {
       throw new NotFoundException(String.format("Can't find post %s", post.getId()));
     }
 
-    if (post.getMessage() == null) {
+    if (post.getMessage() == null || post.getMessage().equals(stored.getMessage())) {
       return stored;
     }
 

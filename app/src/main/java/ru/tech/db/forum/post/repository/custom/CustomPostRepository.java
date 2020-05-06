@@ -7,6 +7,8 @@ import ru.tech.db.forum.post.model.Post;
 import java.util.List;
 
 public interface CustomPostRepository {
+  void clearCache();
+
   @Transactional
   Post create(Post post);
 

@@ -23,7 +23,7 @@ CREATE EXTENSION IF NOT EXISTS CITEXT;
 create unlogged table forum.users
 (
     nickname citext primary key,
-    fullname text        not null,
+    fullname text          not null,
     email    citext unique not null,
     about    text
 );
@@ -106,6 +106,9 @@ $body$
 BEGIN
     UPDATE forum.status
     SET thread = thread + 1;
+    UPDATE forum.forums
+    SET threads = threads + 1
+    WHERE slug = NEW.forum;
     RETURN NEW;
 END;
 $body$;
@@ -123,6 +126,9 @@ $body$
 BEGIN
     UPDATE forum.status
     SET post = post + 1;
+    UPDATE forum.forums
+    SET posts = posts + 1
+    WHERE slug = NEW.forum;
     RETURN NEW;
 END;
 $body$;
@@ -214,65 +220,72 @@ begin
         return query select u.nickname, u.fullname, u.email, u.about
                      from forum.threads t
                               full join forum.posts p on (t.author = p.author)
-                              join forum.users u on (u.nickname = t.author)
-                     where (t.forum = forumId or p.forum = forumId)
-                       and u.nickname > since
+                              join forum.users u on (u.nickname = t.author or u.nickname = p.author)
+                     where (lower(t.forum) = lower(forumId) or lower(p.forum) = lower(forumId))
+                       and lower(u.nickname) < lower(since)
+                     group by u.nickname, u.fullname, u.email, u.about
                      order by u.nickname desc
                      limit lim;
     elsif (lim IS NOT NULL and d = true) then
         return query select u.nickname, u.fullname, u.email, u.about
                      from forum.threads t
                               full join forum.posts p on (t.author = p.author)
-                              join forum.users u on (u.nickname = t.author)
-                     where (t.forum = forumId or p.forum = forumId)
+                              join forum.users u on (u.nickname = t.author or u.nickname = p.author)
+                     where (lower(t.forum) = lower(forumId) or lower(p.forum) = lower(forumId))
+                     group by u.nickname, u.fullname, u.email, u.about
                      order by u.nickname desc
                      limit lim;
     elsif (since IS NOT NULL and d = true) then
         return query select u.nickname, u.fullname, u.email, u.about
                      from forum.threads t
                               full join forum.posts p on (t.author = p.author)
-                              join forum.users u on (u.nickname = t.author)
-                     where (t.forum = forumId or p.forum = forumId)
-                       and u.nickname > since
+                              join forum.users u on (u.nickname = t.author or u.nickname = p.author)
+                     where (lower(t.forum) = lower(forumId) or lower(p.forum) = lower(forumId))
+                       and lower(u.nickname) < lower(since)
+                     group by u.nickname, u.fullname, u.email, u.about
                      order by u.nickname desc;
     elsif (d = true) then
         return query select u.nickname, u.fullname, u.email, u.about
                      from forum.threads t
                               full join forum.posts p on (t.author = p.author)
-                              join forum.users u on (u.nickname = t.author)
-                     where (t.forum = forumId or p.forum = forumId)
+                              join forum.users u on (u.nickname = t.author or u.nickname = p.author)
+                     where (lower(t.forum) = lower(forumId) or lower(p.forum) = lower(forumId))
                      order by u.nickname desc;
     elsif (lim IS NOT NULL and since IS NOT NULL) then
         return query select u.nickname, u.fullname, u.email, u.about
                      from forum.threads t
                               full join forum.posts p on (t.author = p.author)
-                              join forum.users u on (u.nickname = t.author)
-                     where (t.forum = forumId or p.forum = forumId)
-                       and u.nickname > since
+                              join forum.users u on (u.nickname = t.author or u.nickname = p.author)
+                     where (lower(t.forum) = lower(forumId) or lower(p.forum) = lower(forumId))
+                       and lower(u.nickname) > lower(since)
+                     group by u.nickname, u.fullname, u.email, u.about
                      order by u.nickname
                      limit lim;
     elsif (lim IS NOT NULL) then
         return query select u.nickname, u.fullname, u.email, u.about
                      from forum.threads t
                               full join forum.posts p on (t.author = p.author)
-                              join forum.users u on (u.nickname = t.author)
-                     where (t.forum = forumId or p.forum = forumId)
+                              join forum.users u on (u.nickname = t.author or u.nickname = p.author)
+                     where (lower(t.forum) = lower(forumId) or lower(p.forum) = lower(forumId))
+                     group by u.nickname, u.fullname, u.email, u.about
                      order by u.nickname
                      limit lim;
     elsif (since IS NOT NULL) then
         return query select u.nickname, u.fullname, u.email, u.about
                      from forum.threads t
                               full join forum.posts p on (t.author = p.author)
-                              join forum.users u on (u.nickname = t.author)
-                     where (t.forum = forumId or p.forum = forumId)
-                       and u.nickname > since
+                              join forum.users u on (u.nickname = t.author or u.nickname = p.author)
+                     where (lower(t.forum) = lower(forumId) or lower(p.forum) = lower(forumId))
+                       and lower(u.nickname) > lower(since)
+                     group by u.nickname, u.fullname, u.email, u.about
                      order by u.nickname;
     else
         return query select u.nickname, u.fullname, u.email, u.about
                      from forum.threads t
                               full join forum.posts p on (t.author = p.author)
-                              join forum.users u on (u.nickname = t.author)
-                     where (t.forum = forumId or p.forum = forumId)
+                              join forum.users u on (u.nickname = t.author or u.nickname = p.author)
+                     where (lower(t.forum) = lower(forumId) or lower(p.forum) = lower(forumId))
+                     group by u.nickname, u.fullname, u.email, u.about
                      order by u.nickname;
     end if;
 end
@@ -303,8 +316,8 @@ begin
                             p.children
                      from forum.posts p
                      where p.thread = threadId
-                       and p.id > since
-                     order by created desc
+                       and p.id < since
+                     order by created desc, id desc
                      limit lim;
     elsif (lim IS NOT NULL and d = true) then
         return query select p.id,
@@ -319,7 +332,7 @@ begin
                             p.children
                      from forum.posts p
                      where p.thread = threadId
-                     order by created desc
+                     order by created desc, id desc
                      limit lim;
     elsif (since IS NOT NULL and d = true) then
         return query select p.id,
@@ -334,8 +347,8 @@ begin
                             p.children
                      from forum.posts p
                      where p.thread = threadId
-                       and p.id > since
-                     order by created desc;
+                       and p.id < since
+                     order by created desc, id desc;
     elsif (d = true) then
         return query select p.id,
                             p.author,
@@ -349,7 +362,7 @@ begin
                             p.children
                      from forum.posts p
                      where p.thread = threadId
-                     order by created desc;
+                     order by created desc, id desc;
     elsif (lim IS NOT NULL and since IS NOT NULL) then
         return query select p.id,
                             p.author,
@@ -364,7 +377,7 @@ begin
                      from forum.posts p
                      where p.thread = threadId
                        and p.id > since
-                     order by created
+                     order by created, id
                      limit lim;
     elsif (lim IS NOT NULL) then
         return query select p.id,
@@ -379,7 +392,7 @@ begin
                             p.children
                      from forum.posts p
                      where p.thread = threadId
-                     order by created
+                     order by created, id
                      limit lim;
     elsif (since IS NOT NULL) then
         return query select p.id,
@@ -395,7 +408,7 @@ begin
                      from forum.posts p
                      where p.thread = threadId
                        and p.id > since
-                     order by created;
+                     order by created, id;
     else
         return query select p.id,
                             p.author,
@@ -409,7 +422,7 @@ begin
                             p.children
                      from forum.posts p
                      where p.thread = threadId
-                     order by created;
+                     order by created, id;
     end if;
 end;
 $body$;
@@ -444,8 +457,8 @@ begin
                             p.children
                      from forum.posts p
                      where p.thread = threadId
-                       and path > sincePath
-                     order by path desc
+                       and path < sincePath
+                     order by path desc, id desc
                      limit lim;
     elsif (lim IS NOT NULL and d = true) then
         return query select p.id,
@@ -460,7 +473,7 @@ begin
                             p.children
                      from forum.posts p
                      where p.thread = threadId
-                     order by path desc
+                     order by path desc, id desc
                      limit lim;
     elsif (sincePath IS NOT NULL and d = true) then
         return query select p.id,
@@ -475,8 +488,8 @@ begin
                             p.children
                      from forum.posts p
                      where p.thread = threadId
-                       and path > sincePath
-                     order by path desc;
+                       and path < sincePath
+                     order by path desc, id desc;
     elsif (d = true) then
         return query select p.id,
                             p.author,
@@ -490,7 +503,7 @@ begin
                             p.children
                      from forum.posts p
                      where p.thread = threadId
-                     order by path desc;
+                     order by path desc, id desc;
     elsif (lim IS NOT NULL and sincePath IS NOT NULL) then
         return query select p.id,
                             p.author,
@@ -505,7 +518,7 @@ begin
                      from forum.posts p
                      where p.thread = threadId
                        and path > sincePath
-                     order by path
+                     order by path, id
                      limit lim;
     elsif (lim IS NOT NULL) then
         return query select p.id,
@@ -520,7 +533,7 @@ begin
                             p.children
                      from forum.posts p
                      where p.thread = threadId
-                     order by path
+                     order by path, id
                      limit lim;
     elsif (sincePath IS NOT NULL) then
         return query select p.id,
@@ -536,7 +549,7 @@ begin
                      from forum.posts p
                      where p.thread = threadId
                        and path > sincePath
-                     order by path;
+                     order by path, id;
     else
         return query select p.id,
                             p.author,
@@ -550,15 +563,15 @@ begin
                             p.children
                      from forum.posts p
                      where p.thread = threadId
-                     order by path;
+                     order by path, id;
     end if;
 end;
 $body$;
 -----------------------------------------------------------------------------
 create or replace function forum.getThreadPostParentTree(threadId bigint,
-                                                   lim integer,
-                                                   since bigint,
-                                                   d boolean)
+                                                         lim integer,
+                                                         since bigint,
+                                                         d boolean)
     returns table
             (
                 like forum.posts
@@ -566,8 +579,13 @@ create or replace function forum.getThreadPostParentTree(threadId bigint,
     LANGUAGE 'plpgsql'
 as
 $body$
+declare
+    sincePath integer;
 begin
-    if (lim IS NOT NULL and since IS NOT NULL and d = true) then
+    if (since is not null) then
+        select path[1] into sincePath from forum.posts where id = since;
+    end if;
+    if (lim IS NOT NULL and sincePath IS NOT NULL and d = true) then
         return query select p.id,
                             p.author,
                             p.created,
@@ -580,13 +598,15 @@ begin
                             p.children
                      from forum.posts p
                      where p.path[1] in (
-                         select id from forum.posts
-                            where thread = threadId and parent = 0
-                                and id > since
-                            order by id desc
-                            limit lim
-                         )
-                     order by path[1] desc, path;
+                         select id
+                         from forum.posts
+                         where thread = threadId
+                           and parent = 0
+                           and id < sincePath
+                         order by id desc
+                         limit lim
+                     )
+                     order by path[1] desc, path, id;
     elsif (lim IS NOT NULL and d = true) then
         return query select p.id,
                             p.author,
@@ -600,13 +620,15 @@ begin
                             p.children
                      from forum.posts p
                      where p.path[1] in (
-                         select id from forum.posts
-                         where thread = threadId and parent = 0
+                         select id
+                         from forum.posts
+                         where thread = threadId
+                           and parent = 0
                          order by id desc
                          limit lim
                      )
-                     order by path[1] desc, path;
-    elsif (since IS NOT NULL and d = true) then
+                     order by path[1] desc, path, id;
+    elsif (sincePath IS NOT NULL and d = true) then
         return query select p.id,
                             p.author,
                             p.created,
@@ -619,11 +641,13 @@ begin
                             p.children
                      from forum.posts p
                      where p.path[1] in (
-                         select id from forum.posts
-                         where thread = threadId and parent = 0
-                           and id > since
+                         select id
+                         from forum.posts
+                         where thread = threadId
+                           and parent = 0
+                           and id < sincePath
                      )
-                     order by path[1] desc, path;
+                     order by path[1] desc, path, id;
     elsif (d = true) then
         return query select p.id,
                             p.author,
@@ -637,11 +661,13 @@ begin
                             p.children
                      from forum.posts p
                      where p.path[1] in (
-                         select id from forum.posts
-                         where thread = threadId and parent = 0
+                         select id
+                         from forum.posts
+                         where thread = threadId
+                           and parent = 0
                      )
-                     order by path[1] desc, path;
-    elsif (lim IS NOT NULL and since IS NOT NULL) then
+                     order by path[1] desc, path, id;
+    elsif (lim IS NOT NULL and sincePath IS NOT NULL) then
         return query select p.id,
                             p.author,
                             p.created,
@@ -654,13 +680,15 @@ begin
                             p.children
                      from forum.posts p
                      where p.path[1] in (
-                         select id from forum.posts
-                         where thread = threadId and parent = 0
-                           and id > since
+                         select id
+                         from forum.posts
+                         where thread = threadId
+                           and parent = 0
+                           and id > sincePath
                          order by id
                          limit lim
                      )
-                     order by path[1], path;
+                     order by path, id;
     elsif (lim IS NOT NULL) then
         return query select p.id,
                             p.author,
@@ -674,13 +702,15 @@ begin
                             p.children
                      from forum.posts p
                      where p.path[1] in (
-                         select id from forum.posts
-                         where thread = threadId and parent = 0
+                         select id
+                         from forum.posts
+                         where thread = threadId
+                           and parent = 0
                          order by id
                          limit lim
                      )
-                     order by path[1], path;
-    elsif (since IS NOT NULL) then
+                     order by path, id;
+    elsif (sincePath IS NOT NULL) then
         return query select p.id,
                             p.author,
                             p.created,
@@ -693,11 +723,13 @@ begin
                             p.children
                      from forum.posts p
                      where p.path[1] in (
-                         select id from forum.posts
-                         where thread = threadId and parent = 0
-                           and id > since
+                         select id
+                         from forum.posts
+                         where thread = threadId
+                           and parent = 0
+                           and id > sincePath
                      )
-                     order by path[1], path;
+                     order by path, id;
     else
         return query select p.id,
                             p.author,
@@ -711,10 +743,12 @@ begin
                             p.children
                      from forum.posts p
                      where p.path[1] in (
-                         select id from forum.posts
-                         where thread = threadId and parent = 0
+                         select id
+                         from forum.posts
+                         where thread = threadId
+                           and parent = 0
                      )
-                     order by path[1], path;
+                     order by path, id;
     end if;
 end;
 $body$;

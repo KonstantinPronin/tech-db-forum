@@ -16,6 +16,11 @@ public class CustomPostRepositoryImpl implements CustomPostRepository {
   @PersistenceContext private EntityManager em;
 
   @Override
+  public void clearCache() {
+    em.clear();
+  }
+
+  @Override
   public Post create(Post post) {
     em.persist(post);
     return post;

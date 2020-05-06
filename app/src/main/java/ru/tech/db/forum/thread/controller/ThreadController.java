@@ -3,6 +3,9 @@ package ru.tech.db.forum.thread.controller;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import ru.tech.db.forum.exception.model.NotFoundException;
+import ru.tech.db.forum.forum.model.Forum;
+import ru.tech.db.forum.forum.service.ForumService;
 import ru.tech.db.forum.thread.model.Thread;
 import ru.tech.db.forum.thread.service.ThreadService;
 import ru.tech.db.forum.vote.model.Vote;
@@ -14,15 +17,23 @@ import java.util.List;
 @RequestMapping("/api")
 public class ThreadController {
   private ThreadService service;
+  private ForumService forumService;
 
-  public ThreadController(ThreadService service) {
+  public ThreadController(ThreadService service, ForumService forumService) {
     this.service = service;
+    this.forumService = forumService;
   }
 
   @PostMapping("/forum/{slug}/create")
   public ResponseEntity createThread(
       @RequestBody Thread thread, @PathVariable(name = "slug") String slug) {
-    thread.setForum(slug);
+    Forum forum = forumService.getForum(slug);
+    if (forum == null) {
+        throw new NotFoundException(
+                String.format("Can't find forum %s", slug));
+    }
+
+    thread.setForum(forum.getSlug());
     List<Thread> threadList = service.createThread(thread);
 
     if (threadList.size() == 1) {
@@ -43,11 +54,9 @@ public class ThreadController {
       zdt = ZonedDateTime.parse(since);
     }
 
+    forumService.getForum(slug);
     List<Thread> threadList = service.getThreads(slug, zdt, limit, desc);
 
-    if (threadList.isEmpty()) {
-      return ResponseEntity.status(HttpStatus.NOT_FOUND).body("there is no forum");
-    }
     return ResponseEntity.status(HttpStatus.OK).body(threadList);
   }
 
@@ -85,6 +94,7 @@ public class ThreadController {
       @RequestBody Vote vote, @PathVariable(name = "slug_or_id") String slugOrId) {
     Thread thread;
 
+    //TODO too many requests to db
     try {
       long id = Long.parseLong(slugOrId);
       thread = service.getThread(id);
@@ -93,7 +103,9 @@ public class ThreadController {
     }
 
     vote.setThread(thread.getId());
-    //TODO thread vote is old, maybe should be updated
+    service.vote(vote);
+
+    thread = service.getThread(vote.getThread());
     return ResponseEntity.status(HttpStatus.OK).body(thread);
   }
 }

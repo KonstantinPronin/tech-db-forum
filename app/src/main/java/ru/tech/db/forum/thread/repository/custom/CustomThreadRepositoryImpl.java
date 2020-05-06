@@ -11,6 +11,11 @@ public class CustomThreadRepositoryImpl implements CustomThreadRepository {
   @PersistenceContext private EntityManager em;
 
   @Override
+  public void clearCache() {
+    em.clear();
+  }
+
+  @Override
   public Thread create(Thread thread) {
     em.persist(thread);
     return thread;
@@ -25,7 +30,7 @@ public class CustomThreadRepositoryImpl implements CustomThreadRepository {
   @Override
   public List<Thread> findThreadsBySlugOrderByCreatedAsc(String slug) {
     return em.createQuery(
-            "select t from thread t where t.forum = ?1 order by t.created asc",
+            "select t from thread t where lower(t.forum) = lower(?1) order by t.created asc",
             Thread.class)
             .setParameter(1, slug)
             .getResultList();
@@ -34,7 +39,7 @@ public class CustomThreadRepositoryImpl implements CustomThreadRepository {
   @Override
   public List<Thread> findThreadsBySlugOrderByCreatedDesc(String slug) {
     return em.createQuery(
-            "select t from thread t where t.forum = ?1 order by t.created desc",
+            "select t from thread t where lower(t.forum) = (?1) order by t.created desc",
             Thread.class)
             .setParameter(1, slug)
             .getResultList();
@@ -43,7 +48,7 @@ public class CustomThreadRepositoryImpl implements CustomThreadRepository {
   @Override
   public List<Thread> findThreadsBySlugWithLimitOrderByCreatedAsc(String slug, int limit) {
     return em.createQuery(
-            "select t from thread t where t.forum = ?1 order by t.created asc",
+            "select t from thread t where lower(t.forum) = lower(?1) order by t.created asc",
             Thread.class)
             .setParameter(1, slug)
             .setMaxResults(limit)
@@ -53,7 +58,7 @@ public class CustomThreadRepositoryImpl implements CustomThreadRepository {
   @Override
   public List<Thread> findThreadsBySlugWithLimitOrderByCreatedDesc(String slug, int limit) {
     return em.createQuery(
-            "select t from thread t where t.forum = ?1 order by t.created desc",
+            "select t from thread t where lower(t.forum) = lower(?1) order by t.created desc",
             Thread.class)
             .setParameter(1, slug)
             .setMaxResults(limit)
@@ -64,7 +69,7 @@ public class CustomThreadRepositoryImpl implements CustomThreadRepository {
   public List<Thread> findThreadsBySlugSinceCreatedOrderByCreatedAsc(
       String slug, ZonedDateTime since) {
     return em.createQuery(
-            "select t from thread t where t.forum = ?1 and t.created >= ?2 order by t.created asc",
+            "select t from thread t where lower(t.forum) = lower(?1) and t.created >= ?2 order by t.created asc",
             Thread.class)
             .setParameter(1, slug)
             .setParameter(2, since)
@@ -75,7 +80,7 @@ public class CustomThreadRepositoryImpl implements CustomThreadRepository {
   public List<Thread> findThreadsBySlugSinceCreatedOrderByCreatedDesc(
       String slug, ZonedDateTime since) {
     return em.createQuery(
-            "select t from thread t where t.forum = ?1 and t.created >= ?2 order by t.created desc",
+            "select t from thread t where lower(t.forum) = lower(?1) and t.created <= ?2 order by t.created desc",
             Thread.class)
             .setParameter(1, slug)
             .setParameter(2, since)
@@ -86,7 +91,7 @@ public class CustomThreadRepositoryImpl implements CustomThreadRepository {
   public List<Thread> findThreadsBySlugSinceCreatedWithLimitOrderByCreatedAsc(
       String slug, ZonedDateTime since, int limit) {
     return em.createQuery(
-            "select t from thread t where t.forum = ?1 and t.created >= ?2 order by t.created asc",
+            "select t from thread t where lower(t.forum) = lower(?1) and t.created >= ?2 order by t.created asc",
             Thread.class)
         .setParameter(1, slug)
         .setParameter(2, since)
@@ -98,7 +103,7 @@ public class CustomThreadRepositoryImpl implements CustomThreadRepository {
   public List<Thread> findThreadsBySlugSinceCreatedWithLimitOrderByCreatedDesc(
       String slug, ZonedDateTime since, int limit) {
     return em.createQuery(
-            "select t from thread t where t.forum = ?1 and t.created >= ?2 order by t.created desc",
+            "select t from thread t where lower(t.forum) = lower(?1) and t.created <= ?2 order by t.created desc",
             Thread.class)
             .setParameter(1, slug)
             .setParameter(2, since)

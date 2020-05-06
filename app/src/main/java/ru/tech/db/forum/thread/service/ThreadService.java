@@ -42,6 +42,7 @@ public class ThreadService {
       }
       if (UNIQUE_VIOLATION.getState().equals(state)) {
         threadList.add(repository.findThreadBySlug(thread.getSlug()));
+        return threadList;
       }
 
       throw ex;
@@ -134,6 +135,7 @@ public class ThreadService {
   public void vote(Vote vote) {
     try {
       voteRepository.save(vote);
+      repository.clearCache();
     } catch (DataIntegrityViolationException ex) {
       throw new NotFoundException(String.format("Can't find user %s", vote.getNickname()));
     }

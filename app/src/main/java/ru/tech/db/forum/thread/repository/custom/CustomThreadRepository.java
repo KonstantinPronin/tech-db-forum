@@ -7,6 +7,7 @@ import java.time.ZonedDateTime;
 import java.util.List;
 
 public interface CustomThreadRepository {
+    void clearCache();
     @Transactional
     Thread create(Thread thread);
     @Transactional

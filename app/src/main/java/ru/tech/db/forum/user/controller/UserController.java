@@ -3,6 +3,7 @@ package ru.tech.db.forum.user.controller;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import ru.tech.db.forum.forum.service.ForumService;
 import ru.tech.db.forum.user.model.User;
 import ru.tech.db.forum.user.service.UserService;
 
@@ -13,9 +14,11 @@ import java.util.List;
 @RequestMapping("/api")
 public class UserController {
   private UserService service;
+  private ForumService forumService;
 
-  public UserController(UserService service) {
+  public UserController(UserService service, ForumService forumService) {
     this.service = service;
+    this.forumService = forumService;
   }
 
   @PostMapping("/user/{nickname}/create")
@@ -55,8 +58,9 @@ public class UserController {
     List<User> userList = service.getForumUsers(slug, since, limit, desc);
 
     if (userList.isEmpty()) {
-      return ResponseEntity.status(HttpStatus.NOT_FOUND).body("there is no forum");
+      forumService.getForum(slug);
     }
+
     return ResponseEntity.status(HttpStatus.OK).body(userList);
   }
 }

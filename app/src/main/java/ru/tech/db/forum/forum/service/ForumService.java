@@ -6,9 +6,8 @@ import org.springframework.stereotype.Service;
 import ru.tech.db.forum.exception.model.NotFoundException;
 import ru.tech.db.forum.forum.model.Forum;
 import ru.tech.db.forum.forum.repository.ForumRepository;
-
-import java.util.ArrayList;
-import java.util.List;
+import ru.tech.db.forum.user.model.User;
+import ru.tech.db.forum.user.repository.UserRepository;
 
 import static org.postgresql.util.PSQLState.FOREIGN_KEY_VIOLATION;
 import static org.postgresql.util.PSQLState.UNIQUE_VIOLATION;
@@ -16,12 +15,21 @@ import static org.postgresql.util.PSQLState.UNIQUE_VIOLATION;
 @Service
 public class ForumService {
   private ForumRepository repository;
+  private UserRepository userRepository;
 
-  public ForumService(ForumRepository repository) {
+  public ForumService(ForumRepository repository, UserRepository userRepository) {
     this.repository = repository;
+    this.userRepository = userRepository;
   }
 
   public Forum createForum(Forum forum) {
+    User user = userRepository.findUserByNickname(forum.getUser());
+
+    if (user == null) {
+      throw new NotFoundException(String.format("Can't find user %s", forum.getUser()));
+    }
+    forum.setUser(user.getNickname());
+
     try {
       repository.create(forum);
     } catch (DataIntegrityViolationException ex) {
@@ -38,7 +46,7 @@ public class ForumService {
       throw ex;
     }
 
-    return forum;
+    return null;
   }
 
   public Forum getForum(String slug) {
